@@ -50,7 +50,6 @@ def set_page_container_style(
 # Apply the custom page container style
 set_page_container_style(max_width_100_percent=True, padding_top=0, padding_right=0, padding_left=0, padding_bottom=0)
 
-
 # Define sources with manual names
 sources = {
     "Energetyka24": "https://energetyka24.com/_rss",
@@ -136,7 +135,7 @@ def fetch_and_process_feeds():
     def normalize_to_utc_plus_two(published_parsed, published, source):
         if published_parsed is not None:
             if source == 'wnp.pl':
-                local_dt = datetime(*published_parsed[:6], tzinfo=pytz.timezone('Europe/Warsaw'))
+                local_dt = datetime(*published_parsed[:6], tzinfo=pytz.UTC)
             else:
                 local_dt = datetime(*published_parsed[:6])
         else:
@@ -174,7 +173,7 @@ def fetch_and_process_feeds():
         except Exception as e:
             st.error(f"Failed to process feed {rss_url}: {e}")
 
-    filtered_entries.sort(key=lambda x: x['published'] or datetime.min.replace(tzinfo=pytz.timezone('Europe/Warsaw')), reverse=True)
+    filtered_entries.sort(key=lambda x: x['published'] or datetime.min.replace(tzinfo=pytz.UTC), reverse=True)
     return filtered_entries
 
 def display_entries(entries):
