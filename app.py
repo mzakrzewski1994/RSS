@@ -279,7 +279,7 @@ def display_entries(entries):
         </div>
     </body>
     </html>
-    '''
+    '''.format()
 
     return html
 
