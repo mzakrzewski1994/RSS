@@ -50,7 +50,6 @@ def set_page_container_style(
 # Apply the custom page container style
 set_page_container_style(max_width_100_percent=True, padding_top=0, padding_right=0, padding_left=0, padding_bottom=0)
 
-
 # Define sources with manual names
 sources = {
     "Energetyka24": "https://energetyka24.com/_rss",
@@ -116,7 +115,7 @@ def fetch_and_process_feeds():
         else:
             return summary
 
-        def parse_date(date_str):
+    def parse_date(date_str):
         date_str = re.sub(r'^[a-z]{2,3}\.,\s', '', date_str.lower(), flags=re.IGNORECASE)
         date_formats = [
             "%a, %d %b %Y %H:%M:%S %z",
