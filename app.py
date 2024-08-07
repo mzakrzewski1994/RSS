@@ -11,6 +11,7 @@ def set_page_container_style(
         padding_top: int = 1, padding_right: int = 1, padding_left: int = 1, padding_bottom: int = 1,
         color: str = 'black', background_color: str = 'white',
     ):
+    st.set_page_config(layout="wide")
     if max_width_100_percent:
         max_width_str = 'max-width: 100%;'
     else:
