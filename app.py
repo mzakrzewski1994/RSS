@@ -178,7 +178,7 @@ def fetch_and_process_feeds():
     return filtered_entries
 
 def display_entries(entries):
-    html = '''
+    html += '''
     <html>
     <head>
         <style>
@@ -239,7 +239,7 @@ def display_entries(entries):
                 <label>Select sources:</label><br>
                 <label><input type="checkbox" onclick="selectAllCheckboxes('source-checkbox', this.checked)" checked> All</label>
                 <label><input type="checkbox" onclick="selectAllCheckboxes('source-checkbox', false)"> None</label><br>
-    '''.format("")
+    '''
 
     for source in sources.keys():
         checked = "checked" if st.session_state['source_checks'][source] else ""
