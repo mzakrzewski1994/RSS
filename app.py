@@ -135,7 +135,7 @@ def fetch_and_process_feeds():
     def normalize_to_utc_plus_two(published_parsed, published, source):
         if published_parsed is not None:
             if source == 'wnp.pl':
-                local_dt = datetime(*published_parsed[:6], tzinfo=pytz.timezone('Europe/Warsaw'))
+                local_dt = datetime(*published_parsed[:6], tzinfo=pytz.UTC)
             else:
                 local_dt = datetime(*published_parsed[:6])
         else:
@@ -144,7 +144,7 @@ def fetch_and_process_feeds():
             except Exception as e:
                 st.error(f"Failed to parse date {published}: {e}")
                 return None
-        return local_dt.astimezone(pytz.timezone('Europe/Warsaw'))
+        return local_dt.astimezone(pytz.UTC)
 
     filtered_entries = []
     unique_entries = set()
