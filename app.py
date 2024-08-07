@@ -239,7 +239,7 @@ def display_entries(entries):
                 <label>Select sources:</label><br>
                 <label><input type="checkbox" onclick="selectAllCheckboxes('source-checkbox', this.checked)" checked> All</label>
                 <label><input type="checkbox" onclick="selectAllCheckboxes('source-checkbox', false)"> None</label><br>
-    '''
+    '''.format("")
 
     for source in sources.keys():
         checked = "checked" if st.session_state['source_checks'][source] else ""
