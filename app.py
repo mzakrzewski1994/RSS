@@ -4,6 +4,7 @@ import feedparser
 from datetime import datetime
 import pytz
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Function to set custom page container style
 def set_page_container_style(
@@ -101,77 +102,86 @@ if 'keyword_checks' not in st.session_state:
 if 'custom_filter' not in st.session_state:
     st.session_state['custom_filter'] = ""
 
-def fetch_and_process_feeds():
-    def clean_html(html):
-        html = re.sub(r'<img[^>]*>', '', html)
-        html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
-        html = re.sub(r'<[^>]+>', '', html)
-        return html
+def clean_html(html):
+    html = re.sub(r'<img[^>]*>', '', html)
+    html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
+    html = re.sub(r'<[^>]+>', '', html)
+    return html
 
-    def process_summary(summary):
-        if '\n\n\n\n' in summary:
-            parts = summary.split('\n\n\n\n')
-            return parts[0] + ". " + parts[1]
+def process_summary(summary):
+    if '\n\n\n\n' in summary:
+        parts = summary.split('\n\n\n\n')
+        return parts[0] + ". " + parts[1]
+    else:
+        return summary
+
+def parse_date(date_str):
+    date_str = re.sub(r'^[a-z]{2,3}\.,\s', '', date_str.lower(), flags=re.IGNORECASE)
+    date_formats = [
+        "%a, %d %b %Y %H:%M:%S %z",
+        "%a, %d %b %Y %H:%M:%S %Z",
+        "%a, %d %b %Y %H:%M:%S",
+        "%a, %d %b %Y %H:%M %Z",
+        "%a, %d %b %Y %H:%M",
+        "%d/%m/%Y - %H:%M"
+    ]
+    for date_format in date_formats:
+        try:
+            return datetime.strptime(date_str, date_format)
+        except ValueError:
+            continue
+    raise ValueError(f"time data '{date_str}' does not match any known format")
+
+def normalize_to_utc_plus_two(published_parsed, published, source):
+    if published_parsed is not None:
+        if source == 'wnp.pl':
+            local_dt = datetime(*published_parsed[:6], tzinfo=pytz.UTC)
         else:
-            return summary
+            local_dt = datetime(*published_parsed[:6])
+    else:
+        try:
+            local_dt = parse_date(published)
+        except Exception as e:
+            st.error(f"Failed to parse date {published}: {e}")
+            return None
+    return local_dt.astimezone(pytz.UTC)
 
-    def parse_date(date_str):
-        date_str = re.sub(r'^[a-z]{2,3}\.,\s', '', date_str.lower(), flags=re.IGNORECASE)
-        date_formats = [
-            "%a, %d %b %Y %H:%M:%S %z",
-            "%a, %d %b %Y %H:%M:%S %Z",
-            "%a, %d %b %Y %H:%M:%S",
-            "%a, %d %b %Y %H:%M %Z",
-            "%a, %d %b %Y %H:%M",
-            "%d/%m/%Y - %H:%M"
-        ]
-        for date_format in date_formats:
-            try:
-                return datetime.strptime(date_str, date_format)
-            except ValueError:
-                continue
-        raise ValueError(f"time data '{date_str}' does not match any known format")
-
-    def normalize_to_utc_plus_two(published_parsed, published, source):
-        if published_parsed is not None:
-            if source == 'wnp.pl':
-                local_dt = datetime(*published_parsed[:6], tzinfo=pytz.UTC)
-            else:
-                local_dt = datetime(*published_parsed[:6])
-        else:
-            try:
-                local_dt = parse_date(published)
-            except Exception as e:
-                st.error(f"Failed to parse date {published}: {e}")
-                return None
-        return local_dt.astimezone(pytz.UTC)
-
+def fetch_feed(name, rss_url):
     filtered_entries = []
     unique_entries = set()
+    try:
+        feed = feedparser.parse(rss_url)
+        for entry in feed.entries:
+            summary = entry.summary if 'summary' in entry else (entry.description if 'description' in entry else '')
+            summary = clean_html(summary)
+            summary = process_summary(summary)
+            entry_id = entry.link
 
-    for name, rss_url in sources.items():
-        try:
-            feed = feedparser.parse(rss_url)
-            for entry in feed.entries:
-                summary = entry.summary if 'summary' in entry else (entry.description if 'description' in entry else '')
-                summary = clean_html(summary)
-                summary = process_summary(summary)
-                entry_id = entry.link
+            if entry_id not in unique_entries:
+                unique_entries.add(entry_id)
+                published_dt = normalize_to_utc_plus_two(entry.published_parsed, entry.published, feed.feed.title)
 
-                if entry_id not in unique_entries:
-                    unique_entries.add(entry_id)
-                    published_dt = normalize_to_utc_plus_two(entry.published_parsed, entry.published, feed.feed.title)
+                filtered_entries.append({
+                    'title': entry.title,
+                    'link': entry.link,
+                    'published': published_dt,
+                    'published_str': published_dt.strftime('%a, %d %b %Y %H:%M') if published_dt else 'Unknown',
+                    'summary': summary,
+                    'source': name
+                })
+    except Exception as e:
+        st.error(f"Failed to process feed {rss_url}: {e}")
 
-                    filtered_entries.append({
-                        'title': entry.title,
-                        'link': entry.link,
-                        'published': published_dt,
-                        'published_str': published_dt.strftime('%a, %d %b %Y %H:%M') if published_dt else 'Unknown',
-                        'summary': summary,
-                        'source': name
-                    })
-        except Exception as e:
-            st.error(f"Failed to process feed {rss_url}: {e}")
+    return filtered_entries
+
+def fetch_and_process_feeds():
+    filtered_entries = []
+
+    with ThreadPoolExecutor() as executor:
+        future_to_source = {executor.submit(fetch_feed, name, rss_url): name for name, rss_url in sources.items()}
+        for future in as_completed(future_to_source):
+            source_entries = future.result()
+            filtered_entries.extend(source_entries)
 
     filtered_entries.sort(key=lambda x: x['published'] or datetime.min.replace(tzinfo=pytz.timezone('Europe/Warsaw')), reverse=True)
     return filtered_entries
