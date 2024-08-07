@@ -135,7 +135,7 @@ def fetch_and_process_feeds():
 
     def normalize_to_utc_plus_two(published_parsed, published, source):
         if published_parsed is not None:
-            if source == 'wnp.pl':
+            if source == '1111111':
                 local_dt = datetime(*published_parsed[:6], tzinfo=pytz.timezone('Europe/Warsaw'))
             else:
                 local_dt = datetime(*published_parsed[:6])
