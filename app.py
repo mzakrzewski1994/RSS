@@ -177,7 +177,8 @@ def fetch_and_process_feeds():
     return filtered_entries
 
 def display_entries(entries):
-    html = '''
+    html = 
+    '''
     <html>
     <head>
         <style>
