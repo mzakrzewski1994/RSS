@@ -116,7 +116,7 @@ def fetch_and_process_feeds():
         else:
             return summary
 
-    def parse_date(date_str):
+        def parse_date(date_str):
         date_str = re.sub(r'^[a-z]{2,3}\.,\s', '', date_str.lower(), flags=re.IGNORECASE)
         date_formats = [
             "%a, %d %b %Y %H:%M:%S %z",
@@ -135,8 +135,8 @@ def fetch_and_process_feeds():
 
     def normalize_to_utc_plus_two(published_parsed, published, source):
         if published_parsed is not None:
-            if source == '1111111':
-                local_dt = datetime(*published_parsed[:6], tzinfo=pytz.timezone('Europe/Warsaw'))
+            if source == 'wnp.pl':
+                local_dt = datetime(*published_parsed[:6], tzinfo=pytz.UTC)
             else:
                 local_dt = datetime(*published_parsed[:6])
         else:
@@ -174,7 +174,7 @@ def fetch_and_process_feeds():
         except Exception as e:
             st.error(f"Failed to process feed {rss_url}: {e}")
 
-    filtered_entries.sort(key=lambda x: x['published'] or datetime.min.replace(tzinfo=pytz.timezone('Europe/Warsaw')), reverse=True)
+    filtered_entries.sort(key=lambda x: x['published'] or datetime.min.replace(tzinfo=pytz.UTC), reverse=True)
     return filtered_entries
 
 def display_entries(entries):
