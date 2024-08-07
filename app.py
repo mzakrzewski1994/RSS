@@ -203,6 +203,12 @@ def display_entries(entries):
             .source-checkbox, .keyword-checkbox { margin-right: 5px; }
         </style>
         <script>
+            let debounceTimeout;
+            function debounce(func, delay) {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(func, delay);
+            }
+
             function selectAllCheckboxes(className, isChecked) {
                 var checkboxes = document.getElementsByClassName(className);
                 for (var i = 0; i < checkboxes.length; i++) {
@@ -270,7 +276,7 @@ def display_entries(entries):
 
     html += '''
                 <br><label>Or filter by custom text:</label>
-                <input type="text" id="customFilter" oninput="filterEntries()" value="{}">
+                <input type="text" id="customFilter" oninput="debounce(filterEntries, 300)" value="{}">
             </div>
         </div>
         <div class="content">
