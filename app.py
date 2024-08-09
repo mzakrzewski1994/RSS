@@ -53,7 +53,11 @@ def set_page_container_style(
 set_page_container_style(max_width_100_percent=True, padding_top=0, padding_right=0, padding_left=0, padding_bottom=0)
 
 # Set up auto-refresh every 60 seconds
-st_autorefresh(interval=60000, key="datarefresh")
+#st_autorefresh(interval=60000, key="datarefresh")
+
+# Add Rerun button
+if st.button("Rerun"):
+    st.experimental_rerun()
 
 # Define sources with manual names
 sources = {
@@ -410,4 +414,4 @@ entries = fetch_and_process_feeds()
 
 # Display entries in Streamlit
 html_content = display_entries(entries)
-components.html(html_content, height=700, scrolling=True)
+components.html(html_content, height=650, scrolling=True)
