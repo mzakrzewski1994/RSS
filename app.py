@@ -23,6 +23,7 @@ def set_page_container_style(
         <style>
             .reportview-container .sidebar-content {{
                 padding-top: {padding_top}rem;
+                padding-bottom: 3rem
             }}
             .reportview-container .main .block-container {{
                 {max_width_str}
