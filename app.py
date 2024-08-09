@@ -5,6 +5,7 @@ from datetime import datetime
 import pytz
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from streamlit_autorefresh import st_autorefresh
 
 # Function to set custom page container style
 def set_page_container_style(
@@ -51,6 +52,9 @@ def set_page_container_style(
 # Apply the custom page container style
 set_page_container_style(max_width_100_percent=True, padding_top=0, padding_right=0, padding_left=0, padding_bottom=0)
 
+# Set up auto-refresh every 60 seconds
+st_autorefresh(interval=60000, key="datarefresh")
+
 # Define sources with manual names
 sources = {
     "Energetyka24": "https://energetyka24.com/_rss",
@@ -90,17 +94,111 @@ sources = {
     "300Polityka": "https://300polityka.pl/feed",
 }
 
-# Define keywords
-keywords = ["aramco", "lotos", "obajtek", "orlen", "energetyka", "wodor", "wiatr", "pv", "offshore", "ccs/ccus", "pfas"]
+# Define keywords for the original filters
+original_keywords = ["aramco", "lotos", "obajtek", "orlen", "energetyk", "wodor", "wiatr", "pv", "offshore", "ccs/ccus", "pfas"]
+
+# Define expanded list of keywords for the new "Wiadomości Sektorowe" button
+sector_keywords = [
+  "aramco", "lotos", "obajtek", "orlen", "energetyka", "energetyki", "energetyce", "energetykę", 
+    "wodór", "wodoru", "wodorem", "wiatr", "wiatru", "wiatrze", "wiatrak", "wiatraka", "wiatraku", 
+    "pv", "fotowoltaika", "fotowoltaiki", "fotowoltaice", "fotowoltaikę", "offshore", 
+    "ccs", "ccsu", "ccus", "pfas", 
+    "odnawialne źródła energii", "odnawialnych źródeł energii", "odnawialnym źródłom energii", 
+    "energia słoneczna", "energii słonecznej", "energię słoneczną", 
+    "elektrownie wiatrowe", "elektrowni wiatrowych", "elektrowniom wiatrowym", "fotowoltaika", "fotowoltaiki", "fotowoltaice",
+    "farmy wiatrowe", "farm wiatrowych", "farmom wiatrowym", 
+    "biogaz", "biogazu", "biogazem", 
+    "energia geotermalna", "energii geotermalnej", "energię geotermalną", 
+    "elektromobilność", "elektromobilności", 
+    "transformacja energetyczna", "transformacji energetycznej", 
+    "neutralność klimatyczna", "neutralności klimatycznej", 
+    "emisje CO2", "emisji CO2", "emisjom CO2", 
+    "ślad węglowy", "śladu węglowego", "śladem węglowym", 
+    "efektywność energetyczna", "efektywności energetycznej", "ETS",
+    "panele słoneczne", "paneli słonecznych", "panelom słonecznym", 
+    "sieci energetyczne", "sieci energetycznych", "sieciom energetycznym", 
+    "magazynowanie energii", "magazynowania energii", "magazynowaniu energii", 
+    "akumulatory", "akumulatorów", "akumulatorom", 
+    "zielona energia", "zielonej energii", "zieloną energię", 
+    "zielony wodór", "zielonego wodoru", "zielonym wodorem", 
+    "hydroelektryczność", "hydroelektryczności", 
+    "gaz łupkowy", "gazu łupkowego", "gazem łupkowym", 
+    "energia jądrowa", "energii jądrowej", "energię jądrową", 
+    "reaktory modularne", "reaktorów modularnych", "reaktorom modularnym", 
+    "polska energetyka", "polskiej energetyki", "polskiej energetyce", 
+    "globalne ocieplenie", "globalnego ocieplenia", "globalnemu ociepleniu", 
+    "zmiany klimatyczne", "zmian klimatycznych", "zmianom klimatycznym", 
+    "emisje metanu", "emisji metanu", "emisjom metanu", 
+    "zrównoważony rozwój", "zrównoważonego rozwoju", "zrównoważonemu rozwojowi", 
+    "gospodarka w obiegu zamkniętym", "gospodarki w obiegu zamkniętym", "gospodarce w obiegu zamkniętym", 
+    "inteligentne sieci", "inteligentnych sieci", "inteligentnym sieciom", 
+    "elektrownie atomowe", "elektrowni atomowych", "elektrowniom atomowym", 
+    "reaktory jądrowe", "reaktorów jądrowych", "reaktorom jądrowym", 
+    "farmy fotowoltaiczne", "farm fotowoltaicznych", "farmom fotowoltaicznym", 
+    "dekarbonizacja", "dekarbonizacji", 
+    "recykling energii", "recyklingu energii", "recyklingowi energii", 
+    "polityka klimatyczna", "polityki klimatycznej", "polityce klimatycznej", 
+    "konwencjonalne źródła energii", "konwencjonalnych źródeł energii", "konwencjonalnym źródłom energii", 
+    "odnawialna energia", "odnawialnej energii", "odnawialną energię", 
+    "międzynarodowe porozumienia klimatyczne", "międzynarodowych porozumień klimatycznych", "międzynarodowym porozumieniom klimatycznym", 
+    "efektywność zasobowa", "efektywności zasobowej", 
+    "gospodarka niskoemisyjna", "gospodarki niskoemisyjnej", 
+    "regulacje środowiskowe", "regulacji środowiskowych", "regulacjom środowiskowym", 
+    "konwencje chemiczne", "konwencji chemicznych", "konwencjom chemicznym", 
+    "substancje chemiczne", "substancji chemicznych", "substancjom chemicznym", 
+    "regulacje REACH", "regulacji REACH", "regulacjom REACH", 
+    "substancje toksyczne", "substancji toksycznych", "substancjom toksycznym", 
+    "zanieczyszczenie powietrza", "zanieczyszczenia powietrza", "zanieczyszczeniu powietrza", 
+    "normy emisji", "norm emisji", "normom emisji", 
+    "paliwa alternatywne", "paliw alternatywnych", "paliwom alternatywnym", 
+    "paliwa kopalniane", "paliw kopalnianych", "paliwom kopalnianym", 
+    "kryzys energetyczny", "kryzysu energetycznego", "kryzysowi energetycznemu", 
+    "bezpieczeństwo energetyczne", "bezpieczeństwa energetycznego", "bezpieczeństwu energetycznemu", 
+    "ceny energii", "cen energii", "cenom energii", 
+    "taryfy energetyczne", "taryf energetycznych", "taryfom energetycznym", 
+    "polska polityka energetyczna", "polskiej polityki energetycznej", "polskiej polityce energetycznej", 
+    "elektrownie węglowe", "elektrowni węglowych", "elektrowniom węglowym", 
+    "zamknięcie kopalni", "zamknięcia kopalni", "zamknięciu kopalni", 
+    "transformacja węglowa", "transformacji węglowej", 
+    "pompy ciepła", "pomp ciepła", "pompom ciepła", 
+    "ogrzewanie elektryczne", "ogrzewania elektrycznego", "ogrzewaniu elektrycznemu", 
+    "technologie niskoemisyjne", "technologii niskoemisyjnych", "technologiom niskoemisyjnym", 
+    "infrastruktura energetyczna", "infrastruktury energetycznej", "infrastrukturze energetycznej", 
+    "sieci przesyłowe", "sieci przesyłowych", "sieciom przesyłowym", 
+    "polskie farmy wiatrowe", "polskich farm wiatrowych", "polskim farmom wiatrowym", 
+    "zielony ład", "zielonego ładu", "zielonemu ładowi", 
+    "energetyka konwencjonalna", "energetyki konwencjonalnej", "energetyce konwencjonalnej", 
+    "regulacje energetyczne", "regulacji energetycznych", "regulacjom energetycznym", 
+    "smog", "smogu", "smogiem", 
+    "oczyszczanie powietrza", "oczyszczania powietrza", "oczyszczaniu powietrza", 
+    "technologie OZE", "technologii OZE", "technologiom OZE", 
+    "fundusze klimatyczne", "funduszy klimatycznych", "funduszom klimatycznym", 
+    "zielone inwestycje", "zielonych inwestycji", "zielonym inwestycjom", 
+    "ESG", "ekorozwój", "ekorozwoju", 
+    "certyfikaty CO2", "certyfikatów CO2", "certyfikatom CO2", 
+    "ETS", "system handlu emisjami", "systemu handlu emisjami", "systemowi handlu emisjami", 
+    "odnawialne paliwa", "odnawialnych paliw", "odnawialnym paliwom", 
+    "produkcja energii", "produkcji energii", "produkcję energii", 
+    "polityka środowiskowa", "polityki środowiskowej", "polityce środowiskowej", 
+    "adaptacja klimatyczna", "adaptacji klimatycznej", 
+    "przetwarzanie odpadów", "przetwarzania odpadów", "przetwarzaniu odpadów", 
+    "energetyka morska", "energetyki morskiej", "energetyce morskiej", 
+    "biopaliwa", "biopaliw", "biopaliwom", 
+    "zmniejszenie emisji", "zmniejszenia emisji", "zmniejszeniu emisji", 
+    "zeroemisyjność", "zeroemisyjności", 
+    "modernizacja energetyczna", "modernizacji energetycznej", 
+    "nowe technologie energetyczne", "nowych technologii energetycznych", "nowym technologiom energetycznym"
+]
 
 # Set up default state for checkboxes
 if 'source_checks' not in st.session_state:
     st.session_state['source_checks'] = {source: True for source in sources.keys()}
 if 'keyword_checks' not in st.session_state:
-    st.session_state['keyword_checks'] = {keyword: False for keyword in keywords}
-    st.session_state['keyword_checks']['None'] = True
+    st.session_state['keyword_checks'] = {keyword: False for keyword in original_keywords}
 if 'custom_filter' not in st.session_state:
     st.session_state['custom_filter'] = ""
+if 'sector_news' not in st.session_state:
+    st.session_state['sector_news'] = False
 
 def clean_html(html):
     html = re.sub(r'<img[^>]*>', '', html)
@@ -177,7 +275,7 @@ def fetch_feed(name, rss_url):
 def fetch_and_process_feeds():
     filtered_entries = []
 
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         future_to_source = {executor.submit(fetch_feed, name, rss_url): name for name, rss_url in sources.items()}
         for future in as_completed(future_to_source):
             source_entries = future.result()
@@ -230,6 +328,11 @@ def display_entries(entries):
                 var customFilter = document.getElementById("customFilter").value.toLowerCase();
                 var entries = document.getElementsByClassName("entry");
 
+                var sectorNewsChecked = document.getElementById("sectorNews").checked;
+                if (sectorNewsChecked) {
+                    keywords = ''' + str(sector_keywords).replace("'", '"') + '''.map(keyword => keyword.toLowerCase());
+                }
+
                 for (var i = 0; i < entries.length; i++) {
                     var entry = entries[i];
                     var title = entry.getElementsByClassName("title")[0].innerText.toLowerCase();
@@ -266,15 +369,18 @@ def display_entries(entries):
         <div class="topbar">
             <div>
                 <label>Select keywords to filter by:</label>
-                <label><input type="checkbox" class="keyword-checkbox" onclick="selectAllCheckboxes('keyword-checkbox', false)" checked> None</label>
-    '''
-
-    for keyword in keywords:
-        if keyword != "None":
-            checked = "checked" if st.session_state['keyword_checks'][keyword] else ""
-            html += f'<label><input type="checkbox" class="keyword-checkbox" value="{keyword}" onchange="filterEntries()" {checked}> {keyword}</label>'
-
-    html += '''
+                <label><input type="checkbox" class="keyword-checkbox" value="aramco" onchange="filterEntries()"> Aramco</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="lotos" onchange="filterEntries()"> lotos</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="obajtek" onchange="filterEntries()"> Obajtek</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="orlen" onchange="filterEntries()"> Orlen</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="energetyk" onchange="filterEntries()"> Energetyka</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="wodor" onchange="filterEntries()"> Wodór</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="wiatr" onchange="filterEntries()"> Wiatr</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="pv" onchange="filterEntries()"> PV</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="offshore" onchange="filterEntries()"> Offshore</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="ccs/ccus" onchange="filterEntries()"> CCS/CCUS</label>
+                <label><input type="checkbox" class="keyword-checkbox" value="pfas" onchange="filterEntries()"> PFAS</label>
+                <label><input type="checkbox" id="sectorNews" onchange="filterEntries()"> Wiadomości Sektorowe</label>
                 <br><label>Or filter by custom text:</label>
                 <input type="text" id="customFilter" oninput="debounce(filterEntries, 300)" value="{}">
             </div>
