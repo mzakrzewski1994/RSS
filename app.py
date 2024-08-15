@@ -53,13 +53,6 @@ def set_page_container_style(
 # Apply the custom page container style
 set_page_container_style(max_width_100_percent=True, padding_top=0, padding_right=0, padding_left=0, padding_bottom=0)
 
-# Set up auto-refresh every 60 seconds
-#st_autorefresh(interval=60000, key="datarefresh")
-
-# Add Rerun button
-if st.button("Rerun"):
-    st.experimental_rerun()
-
 # Define sources with manual names
 sources = {
     "Energetyka24": "https://energetyka24.com/_rss",
